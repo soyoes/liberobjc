@@ -6,6 +6,7 @@ a library for objc
 
 # Goals
 * Simplify View rendering
+* Write OBJC code like script languages.
 * Use Style sheets to define styles of views.
 
 
@@ -53,9 +54,10 @@ a library for objc
     View * b = vbox(nil, @{@"h":@30,@"bgcolor":[UIColor blueColor],@"css":@"test"} , self.view);
     
     //Draw a list view from array
-    list(@[@{@"v":@"row 1"},@{@"v":@"row 2"},@{@"v":@"row 3"}], ^void(NSDictionary*d, View* row,int idx){
-        [row setText:d[@"v"]];
-    }, nil, self.view);
+    list(@[@{@"v":@"row 1"},@{@"v":@"row 2"},@{@"v":@"row 3"}], 
+        ^void(NSDictionary*d, View* row,int idx){
+            [row setText:d[@"v"]];
+        }, nil, self.view);
 
     //Draw borderBottom.
     vbox(nil, @{@"h":@30,@"bgcolor":[UIColor yellowColor],@"borderBottom":@"5 #000000"} , self.view);
