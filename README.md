@@ -21,13 +21,13 @@ a library for objc
     //Draw a row with 3 cells
     vbox(@[
         hbox(nil, @{@"w":@98,@"bgcolor":[UIColor redColor]}, nil),
-        hbox(nil, @{@"w":@98,@"bgcolor":[UIColor yellowColor]}, nil),
-        hbox(nil, @{@"w":@98,@"bgcolor":[UIColor greenColor]}, nil)
+        hbox(nil, @{@"w":@98,@"bgcolor":@"#FFFF00"}, nil),
+        hbox(nil, @{@"w":@98,@"bgcolor":@"#00FF00CC"}, nil)
     ], @{@"padding":@10,@"h":@100,@"space":@3},self.view);
 
     //Draw a vertical layout with 3 rows
     vbox(@[
-        vbox(nil, @{@"h":@40,@"bgcolor":[UIColor blueColor]}, nil),
+        vbox(nil, @{@"h":@40,@"bgcolor":@"60,180,255"}, nil),
         vbox(nil, @{@"h":@40,@"bgcolor":[UIColor orangeColor]}, nil),
         vbox(nil, @{@"h":@40,@"bgcolor":[UIColor purpleColor]}, nil)
     ], @{@"padding":@10,@"h":@140,@"space":@5},self.view);
