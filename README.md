@@ -51,7 +51,7 @@ a library for objc
     ], @{@"padding":@10,@"w":@100,@"h":@100},self.view);
 
     //Draw a box with 'CSS' style
-    View * b = vbox(nil, @{@"h":@30,@"bgcolor":[UIColor blueColor],@"css":@"test"} , self.view);
+    View * b = vbox(nil, @{@"h":@30,@"bgcolor":[UIColor blueColor],@"css":@"testStyle"} , self.view);
     
     //Draw a list view from array
     list(@[@{@"v":@"row 1"},@{@"v":@"row 2"},@{@"v":@"row 3"}], 
@@ -65,5 +65,19 @@ a library for objc
 }
 
 
+
+```
+
+In your styles.json
+
+``` css
+
+{
+    "testStyle" : {
+        "border":"1 #FFFF00",
+        "shadow":"1 1 #000000"
+    }
+
+}
 
 ```
