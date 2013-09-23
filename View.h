@@ -53,7 +53,7 @@ typedef void(^ViewGestureHandler)(UIGestureRecognizer*);
 @end
 
 
-@interface View : UIScrollView <UITextFieldDelegate>
+@interface View : UIScrollView <UITextFieldDelegate,UITextViewDelegate>
 
 
 @property (nonatomic) ViewTypes type;
@@ -63,15 +63,16 @@ typedef void(^ViewGestureHandler)(UIGestureRecognizer*);
 @property (nonatomic) NSMutableDictionary *gestures;
 @property (nonatomic) NSMutableArray  *attrs;
 @property (nonatomic) UIView *parent;
-//@property (nonatomic) UIView *content;
 
 @property (nonatomic) BOOL isRoot;
+@property (nonatomic) BOOL editable;
 
 @property (nonatomic) NSString *txt;
 @property (nonatomic,retain) CATextLayer *textLayer;
+@property (nonatomic,retain) UIView *textField;
+
 @property (nonatomic) NSString *src;
 @property (nonatomic) CALayer *backgroundLayer;
-//@property (nonatomic) CALayer *borderLayer;
 
 @property (nonatomic) CGRect contentRect;
 
@@ -81,12 +82,13 @@ typedef void(^ViewGestureHandler)(UIGestureRecognizer*);
 @property (nonatomic) NSMutableDictionary* replacedStyles;
 
 @property (nonatomic) int idx;
-//paddings works only for image|text
-//@property (nonatomic) Border *borderLeft, *borderTop, *borderRight, *borderBottom;
+
 @property (nonatomic) Borders *borders;
 @property (nonatomic) CAShapeLayer *content;
+
 @property (nonatomic) InnerShadow *innerShadow;
 @property (nonatomic) float cornerRadius;
+//paddings works only for image|text
 @property (nonatomic) float paddingLeft, paddingTop, paddingRight, paddingBottom;
 @property (nonatomic) float marginLeft, marginTop, marginRight, marginBottom;
 
@@ -99,20 +101,19 @@ typedef void(^ViewGestureHandler)(UIGestureRecognizer*);
 -(void) setBackgroundImage:(NSString *)imageUrl fitMode:(UIViewContentMode)mode inRect:(CGRect)rect;
 
 -(void) setImage:(NSString *)imageUrl;
--(void) setText:(NSString *)text;
 -(void) setStyle:(NSString *)key value:(id)value;
+-(void) setText:(NSString *)text;
 
 -(View*) attr:(NSString*)key value:(id)value;
 
 -(View*) bind:(NSString*)event handler:(ViewGestureHandler)handler options:(NSDictionary*)options;
 -(View*) unbind:(NSString*)event;
 -(View*) css:(NSString *)styles;
-
+-(View*) root;
 
 -(id) get:(NSString *)keyPath;
 -(void) set:(NSString *)keyPath value:(id)value;
 -(void) del:(NSString*)keyPath;
-
 
 @end
 
@@ -125,5 +126,9 @@ View* img(NSString*src, NSDictionary*opts, UIView*target);
 
 typedef void(^ViewDrawListRowHandler)(NSDictionary*,View*,int);
 View* list(NSArray*data, ViewDrawListRowHandler handler, NSDictionary*opts, UIView*target);
+
+void load_style(NSString* style_file);
+NSDictionary* style(NSString* style);
+
 //View* grids(NSArray*data, NSDictionary*opts, UIView*target);
 

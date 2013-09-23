@@ -43,7 +43,9 @@
 
 #define radians(degrees) (degrees * M_PI/180)
 
-
+#ifndef STYLE_SHEET_FILE
+    #define STYLE_SHEET_FILE "styles.json"
+#endif
 
 /*
  @opts
@@ -162,6 +164,19 @@ View* list(NSArray*data, ViewDrawListRowHandler handler, NSDictionary*opts, UIVi
         }
     }
     return v;
+}
+
+NSDictionary* style(NSString* style){
+    load_style(nil);
+    return _stylesheets[style];
+}
+
+void load_style(NSString* style_file){
+    if(style_file==nil)
+        style_file = [NSString stringWithUTF8String:STYLE_SHEET_FILE];
+    if(_stylesheets==nil){
+        _stylesheets = [[NSDictionary alloc] dictionaryFromJSONFile:style_file];
+    }
 }
 
 #pragma mark - Border
@@ -400,8 +415,9 @@ View* list(NSArray*data, ViewDrawListRowHandler handler, NSDictionary*opts, UIVi
     opts = opts!=nil?opts: @{};
     
     self = [super initWithFrame:CGRectMake(0, 0, 0, 0)];
-    if(_stylesheets==nil)
-        [self loadStyles];
+    
+    load_style(nil);
+    
     _type = type;
     
     self.backgroundColor = [UIColor clearColor];
@@ -477,10 +493,6 @@ View* list(NSArray*data, ViewDrawListRowHandler handler, NSDictionary*opts, UIVi
     if(_borders.hasBorder){
         [self addSubview:_borders];
     }
-    //[super drawRect:rect];
-    //self.backgroundColor = [UIColor clearColor];
-    // Drawing code
-
 
     //FIXME draw Images && text here
     
@@ -558,42 +570,45 @@ View* list(NSArray*data, ViewDrawListRowHandler handler, NSDictionary*opts, UIVi
 
 -(void) setText:(NSString *)_text{
     self.txt = _text;
-    //if(parent!=nil){
-        /*
-         TODO 
-         - (CGSize)sizeThatFits:(CGSize)size //calculate a size to make the superview to fit its all subviews
-         - (void)sizeToFit //auto adjust super view to fit its all subviews
-         */
-        CGRect rect = [self contentFrame];
-        //logRect(@"txt",rect);
-        if(_textLayer==nil)
-            _textLayer= [[CATextLayer alloc] init];
-        if ([_textLayer respondsToSelector:@selector(setContentsScale:)]){
-            _textLayer.contentsScale = [[UIScreen mainScreen] scale];
-        }
+    /*
+     TODO 
+     - (CGSize)sizeThatFits:(CGSize)size //calculate a size to make the superview to fit its all subviews
+     - (void)sizeToFit //auto adjust super view to fit its all subviews
+     */
+    CGRect rect = [self contentFrame];
+    //logRect(@"txt",rect);
+    if(_textLayer==nil)
+        _textLayer= [[CATextLayer alloc] init];
+    else
+        _textLayer.hidden = NO;
+    if ([_textLayer respondsToSelector:@selector(setContentsScale:)]){
+        _textLayer.contentsScale = [[UIScreen mainScreen] scale];
+    }
 
-        [_textLayer setFrame:rect];
-        [_textLayer setString:_text];
-        [_textLayer setBackgroundColor:[UIColor clearColor].CGColor];
-    
-        [self setFont:_opts[@"font"]];
-        if(_opts[@"fontSize"]!=nil)
-            [self setFontSize: [_opts[@"fontSize"] floatValue]];
+    [_textLayer setFrame:rect];
+    [_textLayer setString:_text];
+    [_textLayer setBackgroundColor:[UIColor clearColor].CGColor];
 
-        [self setColor:(_opts[@"color"]!=nil)?_opts[@"color"]:nil];
-    
-        [self setTextAlign:_opts[@"textAlign"]];
-    
-        [_content addSublayer:_textLayer];
-//    }
+    [self setFont:_opts[@"font"]];
+    if(_opts[@"fontSize"]!=nil)
+        [self setFontSize: [_opts[@"fontSize"] floatValue]];
+
+    [self setColor:(_opts[@"color"]!=nil)?_opts[@"color"]:nil];
+
+    [self setTextAlign:_opts[@"textAlign"]];
+
+    [_content addSublayer:_textLayer];
+
 }
 
 -(void) setTextAlign:(NSString*)align{
     const NSDictionary * def = @{@"center":kCAAlignmentCenter,@"left":kCAAlignmentLeft,
                                  @"right":kCAAlignmentRight,@"justified":kCAAlignmentJustified};
-    _opts[@"textAlign"] = (align!=nil && def[align]!=nil) ? def[align]:kCAAlignmentNatural;
+    if(align!=nil)
+        _opts[@"textAlign"] = align;
+    NSString *a = (align!=nil && def[align]!=nil) ? def[align]:kCAAlignmentNatural;
     if(_textLayer!=nil){
-        [_textLayer setAlignmentMode:_opts[@"textAlign"]];
+        [_textLayer setAlignmentMode:a];
     }
     _textLayer.wrapped = (_opts[@"wrapped"] == nil || ![[_opts[@"wrapped"] lowercaseString] isEqualToString:@"false"]);
     _textLayer.truncationMode =(_opts[@"truncate"] == nil || ![[_opts[@"truncate"] lowercaseString] isEqualToString:@"true"]) ?
@@ -604,12 +619,13 @@ View* list(NSArray*data, ViewDrawListRowHandler handler, NSDictionary*opts, UIVi
 -(void) setFont:(NSString*)font{
     if(_textLayer==nil)
         _textLayer= [[CATextLayer alloc] init];
-    if(_stylesheets[@"*"]!=nil){
-        font = _stylesheets[@"*"][@"font"];
+    NSDictionary *defaultStyle = style(@"*");
+    if(defaultStyle!=nil && font==nil){
+        font = defaultStyle[@"font"];
     }
     if(font!=nil && ![font isEqualToString:@"default"]){
-        float fontSize = _stylesheets[@"*"]!=nil && _stylesheets[@"*"][@"fontSize"]!=nil ? [_stylesheets[@"*"][@"fontSize"] floatValue]:14;
-        if([font contains:@","]){//@"12,monaco"
+        float fontSize = defaultStyle!=nil && defaultStyle[@"fontSize"]!=nil ? [defaultStyle[@"fontSize"] floatValue]:14;
+        if([font contains:@","]){//@"monaco,12"
             NSArray *fs = [font componentsSeparatedByString:@","];
             font = (NSString*)fs[0];
             NSString *fsize = [(NSString*)fs[1] stringByReplacingOccurrencesOfString:@" " withString:@""];
@@ -632,7 +648,8 @@ View* list(NSArray*data, ViewDrawListRowHandler handler, NSDictionary*opts, UIVi
                             ([color isKindOfClass:[NSString class]]? [color colorValue]:[UIColor blackColor]);
         [_textLayer setForegroundColor:[cl CGColor]];
     }else{
-        NSString *cl = _stylesheets[@"*"]!=nil && _stylesheets[@"*"][@"color"]!=nil ? _stylesheets[@"*"][@"color"]:@"#000000";
+        NSDictionary *defaultStyle = style(@"*");
+        NSString *cl = defaultStyle!=nil && defaultStyle[@"color"]!=nil ? defaultStyle[@"color"]:@"#000000";
         [_textLayer setForegroundColor:[cl colorValue].CGColor];
     }
 }
@@ -765,7 +782,15 @@ View* list(NSArray*data, ViewDrawListRowHandler handler, NSDictionary*opts, UIVi
 }
 -(View*) attr:(NSString*)key value:(id)value{
     if([_attrs indexOfObject:key]!=NSNotFound){
-        [self setValue:value forKey:key];
+        if([value isKindOfClass:[NSString class]]){
+            if([value isEqualToString:@"true"])
+                [self setValue:[NSNumber numberWithBool:YES] forKey:key];
+            else if([value isEqualToString:@"false"])
+                [self setValue:[NSNumber numberWithBool:NO] forKey:key];
+        }
+        else
+            [self setValue:value forKey:key];
+        
     }else {
         if(![value isKindOfClass:NSClassFromString(@"NSBlock")]){
             [self set:key value:value];//FIXME check if its function
@@ -823,10 +848,10 @@ View* list(NSArray*data, ViewDrawListRowHandler handler, NSDictionary*opts, UIVi
         [self cssClear];
         NSArray *slist = [[styles regexpReplace:@"  +" replace:@""] componentsSeparatedByString:@" "];
         for (NSString *stylename in slist) {
-            NSDictionary *style =[_stylesheets objectForKey:stylename];
-            if(style!=nil){
-                for (NSString *key in style) {
-                    [self setStyle:key value:style[key]];
+            NSDictionary *css =style(stylename);
+            if(css!=nil){
+                for (NSString *key in css) {
+                    [self setStyle:key value:css[key]];
                 }
             }
         }
@@ -954,12 +979,6 @@ View* list(NSArray*data, ViewDrawListRowHandler handler, NSDictionary*opts, UIVi
     
 }
 
--(void) loadStyles{
-    if(_stylesheets==nil){
-        _stylesheets = [[NSDictionary alloc] dictionaryFromJSONFile:@"styles.json"];
-    }
-}
-
 -(void) cssClear{
     if(_replacedStyles!=nil){
         for (NSString *k in _replacedStyles) {
@@ -1016,15 +1035,111 @@ View* list(NSArray*data, ViewDrawListRowHandler handler, NSDictionary*opts, UIVi
 
 -(void) gestureHandler:(UIGestureRecognizer*)ges{
     NSString *className = [[ges class] description];
-    NSRegularExpression *regex = [NSRegularExpression regularExpressionWithPattern:@"(UI|GestureRecognizer)" options:NSRegularExpressionCaseInsensitive error:nil];
+    NSRegularExpression *regex = [NSRegularExpression regularExpressionWithPattern:@"(UI|GestureRecognizer)"
+                                                                           options:NSRegularExpressionCaseInsensitive error:nil];
     className = [[regex stringByReplacingMatchesInString:className options:0 range:NSMakeRange(0, [className length]) withTemplate:@""] lowercaseString];
-
+    /*
+    if(_editable && [className isEqualToString:@"tap"]){
+        [self switchEditingMode];
+    }else */
     if(_gestures!=nil && _gestures[className]!=nil){
         ViewGestureHandler handler = _gestures[className];
         handler(ges);
     }
     NSLog(@"Gesture :  %@",className);
 }
+
+-(void) switchEditingMode{
+    
+    if(_textField!=nil){
+        if(_textField.hidden){
+            [self insertSubview:_textField belowSubview:_borders];
+            if(_textLayer.wrapped){
+                ((UITextView*)_textField).text = _txt;
+            }else{
+                ((UITextField*)_textField).text = _txt;
+            }
+            _textField.hidden = NO;
+            _textLayer.hidden = YES;
+            [_textField becomeFirstResponder];
+            
+            View *root = [self root];
+            if(root){
+                [root set:@"orgContentOffset" value:[NSNumber numberWithFloat:root.contentOffset.y]];
+                [root setContentOffset:CGPointMake(0, self.frame.origin.y) animated:YES];
+                //FIXME , change self.frame.origin.y to height in root
+            }
+        }else{
+            _textField.hidden = YES;
+            if(_textLayer.wrapped){
+                [self setText:((UITextView*)_textField).text];
+            }else{
+                [self setText:((UITextField*)_textField).text];
+            }
+            [_textField resignFirstResponder];
+            View *root = [self root];
+            if(root){
+                float orgOffset = [root get:@"orgContentOffset"]!=nil?[[root get:@"orgContentOffset"] floatValue]:0;
+                [root setContentOffset:CGPointMake(0, orgOffset) animated:YES];
+            }
+        }
+    }
+}
+
+-(void) setEditable:(BOOL)editable{
+    _editable = editable;
+    if(_textField==nil){
+        CGRect rect = CGRectMake(_cornerRadius, _cornerRadius,
+                                 _contentRect.size.width-2*_cornerRadius,
+                                 _contentRect.size.height-2*_cornerRadius);
+        
+        NSDictionary * styles = style(@"*");
+        NSString *fontName = _opts[@"fontName"]!=nil? _opts[@"fontName"]:@"Helvetica";
+        float fontSize = _opts[@"fontSize"]?[_opts[@"fontSize"] floatValue]:
+            (styles!=nil && styles[@"fontSize"]!=nil? [styles[@"fontSize"] floatValue]:14);
+        const NSArray * aligns = (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPhone) ?
+            @[@"left",@"center",@"right", @"justified", @"natrual"]:@[@"left",@"right",@"center", @"justified", @"natrual"];
+        NSString *align = _opts[@"textAlign"]!=nil?_opts[@"textAlign"]:@"left";
+        
+        if(_textLayer.wrapped ||![@"false" isEqualToString:_opts[@"wrapped"]]){
+            UITextView* t = [[UITextView alloc] initWithFrame:rect];
+            t.delegate = self;
+            t.textAlignment = [aligns indexOfObject:align];
+            t.font = [UIFont fontWithName:fontName size:fontSize];
+            t.editable = YES;
+            _textField = t;
+        }else{
+            UITextField* t = [[UITextField alloc] initWithFrame:rect];
+            t.delegate = self;
+            if(_opts[@"placeHolder"]!=nil)
+                t.placeholder = _opts[@"placeHolder"];
+            t.textAlignment = [aligns indexOfObject:align];
+            t.font = [UIFont fontWithName:fontName size:fontSize];
+            _textField = t;
+        }
+        _textField.hidden = YES;
+    }
+    [self bind:@"tap"
+        handler:^void (UIGestureRecognizer* o){
+            View *v = (View *)o.view;
+            [v switchEditingMode];
+        } options:nil];
+}
+
+
+-(View*) root{
+    if(self.isRoot)
+        return self;
+    UIView *v = _parent;
+    while (v!=nil) {
+        if([v isKindOfClass:[View class]]){
+            return [((View*)v) root];
+        }else
+            v = nil;
+    }
+    return nil;
+}
+
 #pragma mark - data methods
 
 - (void) set:(NSString*)keyPath value:(id)value{
@@ -1039,31 +1154,35 @@ View* list(NSArray*data, ViewDrawListRowHandler handler, NSDictionary*opts, UIVi
     [_data removeObjectForKey:keyPath];
 }
 
-#pragma mark - textedit
 
-- (void)setEditable{
-    //TODO create a textField and add to this view.
-    //with options such as expend, scroll up to top...
-}
-
-// became first responder
-- (void)textFieldDidBeginEditing:(UITextField *)textField{
-    
-}
-
+#pragma mark -- delegate of textField
 // may be called if forced even if shouldEndEditing returns NO (e.g. view removed from window) or endEditing:YES called
 - (void)textFieldDidEndEditing:(UITextField *)textField{
     NSLog(@"textFieldDidEndEditing");
-    NSString *v = textField.text;
-    [textField removeFromSuperview];
-    self.txt = v;
-    [self setText:v];
-    //[self.form reloadData];
+    _textField.hidden = YES;
+    [self setText:((UITextField*)_textField).text];
+    View *root = [self root];
+    if(root){
+        float orgOffset = [root get:@"orgContentOffset"]!=nil?[[root get:@"orgContentOffset"] floatValue]:0;
+        [root setContentOffset:CGPointMake(0, orgOffset) animated:YES];
+    }
 }
 
 - (BOOL)textFieldShouldReturn:(UITextField *)textField{
     NSLog(@"textFieldShouldReturn");
-    [textField resignFirstResponder];
+    if(_textLayer.wrapped){
+        ((UITextField*)_textField).text = [NSString stringWithFormat:@"%@\r\n",((UITextField*)_textField).text ];
+        return NO;
+    }else{
+        [textField resignFirstResponder];
+        return YES;
+    }
+    
+}
+
+#pragma mark -- delegate of textView
+
+-(BOOL)textView:(UITextView *)textView shouldChangeTextInRange:(NSRange)range replacementText:(NSString *)text {
     return YES;
 }
 
