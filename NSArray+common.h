@@ -11,11 +11,13 @@
 @interface NSArray (common)
 - (double) sum:(NSString *)key;
 - (NSArray *) arrayFromJSONFile:(NSString*)file;
+- (BOOL) same;
 
 @end
 
 
 @interface NSMutableArray (common)
+- (BOOL) same;
 - (double) sum:(NSString *)key;
 - (NSMutableArray*) initWithFill:(int)length value:(id)value rows:(int)rows;
 @end

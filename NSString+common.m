@@ -50,8 +50,8 @@
         NSArray *rgbs = [target componentsSeparatedByString:@","];
         if([rgbs count]>=3){
             float alpha = [rgbs count]==4 ? [rgbs[3] floatValue]:1;
-            return [UIColor colorWithRed:[rgbs[0] floatValue]
-                                     green:[rgbs[0] floatValue] blue:[rgbs[0] floatValue] alpha:alpha];
+            return [UIColor colorWithRed:[rgbs[0] floatValue]/255
+                                     green:[rgbs[0] floatValue]/255 blue:[rgbs[0] floatValue]/255 alpha:alpha];
         }
         return [UIColor blackColor];
     }else if([self contains:@"#"]){
@@ -77,9 +77,9 @@
         unsigned alpha = 0;
         NSScanner *aScanner = [NSScanner scannerWithString:alphaHex];
         [aScanner scanHexInt:&alpha];
-        return [UIColor colorWithRed:redInt green:greenInt blue:blueInt alpha:alpha/255];
-    }
-    return [UIColor blackColor];
+        return [UIColor colorWithRed:(float)redInt/255 green:(float)greenInt/255 blue:(float)blueInt/255 alpha:(float)alpha/255];
+    }else
+        return [UIColor clearColor];
 }
 - (NSString *)regexpReplace:(NSString *)pattern replace:(NSString*)replace{
     NSRegularExpression *regex = [NSRegularExpression regularExpressionWithPattern:pattern options:NSRegularExpressionCaseInsensitive error:nil];

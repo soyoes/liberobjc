@@ -30,6 +30,20 @@
     return (NSArray*) [str toJSON];
 }
 
+- (BOOL) same{
+    id prev = nil;
+    for (id o in self) {
+        if (prev==nil) {
+            prev = o;
+        }
+        if(![prev isEqual:o]){
+            return NO;
+        }
+        prev = o;
+    }
+    return YES;
+}
+
 @end
 
 
@@ -50,4 +64,9 @@
         return arr;
     }
 }
+- (BOOL) same{
+    NSArray *arr = [NSArray arrayWithArray:self];
+    return [arr same];
+}
+
 @end

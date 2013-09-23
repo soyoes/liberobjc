@@ -9,7 +9,12 @@
 #import "HTTPRequest.h"
 #import "Categories.h"
 
+
 @implementation HTTPRequest
+
+#ifndef HTTPREQUEST_SERVER
+    #define HTTPREQUEST_SERVER @"HTTP://localhost/"
+#endif
 
 - (id)init{
     self = [super init];
@@ -28,6 +33,8 @@
  
  **/
 + (void)get:(NSString *)url handler:(HTTPRequestHandler)handler{
+    url = [HTTPRequest parseURL:url];
+    NSLog(@"%@",url);
     NSURLRequest * request = [[NSMutableURLRequest alloc] initWithURL:[NSURL URLWithString:url]];
     HTTPRequest *req = [[HTTPRequest alloc] init];
     req.handler = handler;
@@ -53,6 +60,7 @@
  **/
 
 + (void)post:(NSString *)url params:(NSDictionary*)params handler:(HTTPRequestHandler)handler{
+    url = [HTTPRequest parseURL:url];
     NSData *postData;
     NSString *queryStr = [HTTPRequest makeQueryStr:params];
     //NSLog(@"query = \n%@",queryStr);
@@ -116,6 +124,13 @@
     return hex;
 }
 
++ (NSString *)parseURL : (NSString*)url{
+    if([url hasPrefix:@"http:"] || [url hasPrefix:@"https:"])
+        return url;
+    else{
+        return [NSString stringWithFormat:@"%s%@",HTTPREQUEST_SERVER,url];
+    }
+}
 
 #pragma mark -- NSURLConnection delegate
 

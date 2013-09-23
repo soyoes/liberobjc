@@ -21,3 +21,5 @@ typedef id(^HTTPRequestHandler)(id);
 //+ (NSString *)packImage :(UIImage *)image;
 
 @end
+
+

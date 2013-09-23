@@ -1,6 +1,6 @@
 //
 //  View.h
-//  screater
+//  liberobjc
 //
 //  Created by soyoes on 7/3/13.
 //  Copyright (c) 2013 soyoes. All rights reserved.
@@ -8,6 +8,7 @@
 
 #import <UIKit/UIKit.h>
 #import <QuartzCore/QuartzCore.h>
+
 typedef enum {
     BOX=0,
     HBOX=1,
@@ -20,34 +21,76 @@ typedef enum {
 typedef void(^ViewGestureHandler)(UIGestureRecognizer*);
 
 
+@class View;
 
-@interface View : UIScrollView
+@interface Border : NSObject
+@property (nonatomic) UIColor *color;
+@property (nonatomic) int width;
+@property (nonatomic) int radius;
++(Border*) borderWithStyle:(NSString*)style;
+@end
+
+@interface Borders : UIView
+@property (nonatomic) NSMutableArray *sides;
+@property (nonatomic) int radius;
+@property (nonatomic) BOOL customized;
+@property (nonatomic) BOOL hasBorder;
+@property (nonatomic) View* target;
+//@property (nonatomic) int left,top,right,bottom;
+-(id) initWithTarget:(View*)v;
+-(void) add:(NSString*)style side:(int)side;
+//-(CGRect) contentRect;
+
+@end
+
+@interface InnerShadow : UIView
+@property (nonatomic) float y;
+@property (nonatomic) float x;
+@property (nonatomic) float radius;
+@property (nonatomic) UIColor *color;
+@property (nonatomic) View* target;
+-(id) initWithTarget:(View*)v x:(float)x y:(float)y r:(float)r color:(UIColor*)color;
+@end
 
 
-@property ViewTypes type;
-@property NSString  *ID;
-@property NSMutableDictionary *opts;
-@property NSMutableDictionary *data;
-@property NSMutableDictionary *gestures;
-@property NSMutableArray  *attrs;
+@interface View : UIScrollView <UITextFieldDelegate>
+
+
+@property (nonatomic) ViewTypes type;
+@property (nonatomic) NSString  *ID;
+@property (nonatomic,retain) NSMutableDictionary *opts;
+@property (nonatomic,retain) NSMutableDictionary *data;
+@property (nonatomic) NSMutableDictionary *gestures;
+@property (nonatomic) NSMutableArray  *attrs;
 @property (nonatomic) UIView *parent;
-@property (nonatomic) UIView *content;
+//@property (nonatomic) UIView *content;
 
-@property NSString *txt;
-@property CATextLayer *textLayer;
-@property NSString *src;
-@property CALayer *imgLayer;
+@property (nonatomic) BOOL isRoot;
+
+@property (nonatomic) NSString *txt;
+@property (nonatomic,retain) CATextLayer *textLayer;
+@property (nonatomic) NSString *src;
+@property (nonatomic) CALayer *backgroundLayer;
+//@property (nonatomic) CALayer *borderLayer;
+
+@property (nonatomic) CGRect contentRect;
 
 //default style options from vbox , hbox ...
-@property NSMutableDictionary* defaultStyles;
+@property (nonatomic) NSMutableDictionary* defaultStyles;
 //original style values that override by css method
-@property NSMutableDictionary* replacedStyles;
+@property (nonatomic) NSMutableDictionary* replacedStyles;
 
-@property int idx;
-@property float padding;
-@property float space; //space between items(subviews)
+@property (nonatomic) int idx;
+//paddings works only for image|text
+//@property (nonatomic) Border *borderLeft, *borderTop, *borderRight, *borderBottom;
+@property (nonatomic) Borders *borders;
+@property (nonatomic) CAShapeLayer *content;
+@property (nonatomic) InnerShadow *innerShadow;
+@property (nonatomic) float cornerRadius;
+@property (nonatomic) float paddingLeft, paddingTop, paddingRight, paddingBottom;
+@property (nonatomic) float marginLeft, marginTop, marginRight, marginBottom;
 
-@property (readonly) float margin;
+@property (nonatomic) float space; //space between items(subviews)
 
 -(void)appendTo:(UIView *)_parent;
 -(id)initWithType:(ViewTypes)type opts:(NSDictionary*)opts target:(UIView*)target;
@@ -69,7 +112,6 @@ typedef void(^ViewGestureHandler)(UIGestureRecognizer*);
 -(id) get:(NSString *)keyPath;
 -(void) set:(NSString *)keyPath value:(id)value;
 -(void) del:(NSString*)keyPath;
-
 
 
 @end
