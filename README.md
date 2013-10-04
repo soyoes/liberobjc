@@ -77,11 +77,11 @@ a library for objc
     
 }
 
-The result of the last example
-[[http://soyoes.com/test/liberobjc-example1.png]]
-
-
 ```
+
+The result of the last example
+[[/images/liberobjc-example1.png]]
+
 
 In your styles.json
 
