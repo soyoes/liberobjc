@@ -1,8 +1,7 @@
 liberobjc
 =========
 
-a library for objc
-
+Rock your OBJC like script language
 
 # Goals
 * Simplify View rendering
