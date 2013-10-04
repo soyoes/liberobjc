@@ -27,9 +27,6 @@
 
 #import "Categories.h"
 #import "View.h"
-#import "NSString+common.h"
-#import "NSDictionary+common.h"
-#import "UIView+liber.h"
 #import <objc/runtime.h>
 #import <QuartzCore/QuartzCore.h>
 #include <math.h>
@@ -905,7 +902,7 @@ void load_style(NSString* style_file){
         float x = [parts[0+offset] floatValue];
         float y = [parts[1+offset] floatValue];
         float r = [parts[2+offset] floatValue];
-        UIColor * cl = (parts[3+offset]!=nil)? [parts[3+offset] colorValue]:[UIColor darkGrayColor];
+        UIColor * cl = ([parts count] >= 4+offset)? [parts[3+offset] colorValue]:[UIColor darkGrayColor];
 
         self.clipsToBounds = NO;
         
@@ -917,9 +914,10 @@ void load_style(NSString* style_file){
             float top = _borderTop!=nil? _borderTop.width+o : o;
             float right = _borderRight!=nil? _borderRight.width+o : o;
             float bottom = _borderBottom!=nil? _borderBottom.width+o : o;
+            float mx = MAX(MAX(left, right),MAX(top, bottom));
 
             s.frame = CGRectMake(left-x, top-y, self.bounds.size.width-left-right+2*x, self.bounds.size.height-top-bottom+2*y);
-            s.cornerRadius = styles.cornerRadius;
+            s.cornerRadius = styles.cornerRadius>mx ? styles.cornerRadius-mx : 0;
             
             s.borderWidth = MAX(x, y);
             s.borderColor = [UIColor colorWithWhite:1 alpha:1].CGColor;

@@ -70,13 +70,15 @@ a library for objc
             .borderRight="20 #FFCC33",
             .borderBottom="10 #FF33CC",
             //.border="10 #000000",
-            .shadow="inset 2 2 5 #999999",
-            .cornerRadius=50,
-            .outline="5 5 #999999",
+            .shadow="inset 15 15 5",
+            .cornerRadius=40,
+            .outline="1 2 #999999",
             .ID="myrect"},panel);
     
 }
 
+The result of the last example
+[[http://soyoes.com/test/liberobjc-example1.png]]
 
 
 ```
