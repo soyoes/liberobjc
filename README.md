@@ -19,8 +19,10 @@ Rock your OBJC like script language
     * .font = "Arial,18"            #font name=Arail, size=18
     * .outline = "1 #555555"
     * .scale = 2,1                  #transform to 200%, 100%
-    * .flip =
-
+    * .flip = "H"                   # or "V", horizontal/vertical flip
+    * .rotate = 90|180|270 ...   
+    * text editing | display features: .nowrap ,.truncate, .editable
+    * layout features : padding, margin, space, paddingLeft, marginLeft....
 # Examples
 
 ```objective-c
