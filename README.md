@@ -81,7 +81,7 @@ a library for objc
 
 The result of the last example
 
-[[images/example1.jpg]]
+[[/images/example1.jpg]]
 
 
 In your styles.json
