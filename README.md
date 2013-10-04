@@ -7,7 +7,16 @@ Rock your OBJC like script language
 * Simplify View rendering
 * Write OBJC code like script languages.
 * Use Style sheets to define styles of views.
-
+* Make it easy to define styles like
+    * borderLeft, borderRight ... with different styles
+    * inner shadow.
+    * cornerRadius > borderLeft...
+* Simplify some works, so you can define styles like this way
+    * .border = "1 #33333399"       #width=1, color=#333333, alpha=99/255
+    * .bgcolor = "#333333 #888888"  #gradient
+    * .shadow = "5 8 10 #666666"    #shadow offset=5,8 radius=10 color=#666666
+    * .shadow = "inset 5 5 5"       #inset shadow with offset & radius, color=darkgray
+    
 
 # Examples
 
