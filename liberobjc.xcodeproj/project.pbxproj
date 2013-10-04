@@ -9,13 +9,8 @@
 /* Begin PBXBuildFile section */
 		5519DF14163F3BF1005EC23D /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5519DF13163F3BF1005EC23D /* Foundation.framework */; };
 		5519DF23163F3C52005EC23D /* HTTPRequest.m in Sources */ = {isa = PBXBuildFile; fileRef = 5519DF22163F3C52005EC23D /* HTTPRequest.m */; };
-		5522E6551640F959001EA938 /* NSData+common.m in Sources */ = {isa = PBXBuildFile; fileRef = 5522E6521640F959001EA938 /* NSData+common.m */; };
-		5522E6561640F959001EA938 /* NSString+common.m in Sources */ = {isa = PBXBuildFile; fileRef = 5522E6541640F959001EA938 /* NSString+common.m */; };
-		557110B01655F9B80069F34C /* UIImage+common.m in Sources */ = {isa = PBXBuildFile; fileRef = 557110AF1655F9B80069F34C /* UIImage+common.m */; };
-		558BFFCA165B4D5E0099081C /* UIVerticalLabel.m in Sources */ = {isa = PBXBuildFile; fileRef = 558BFFC9165B4D5E0099081C /* UIVerticalLabel.m */; };
-		55B3C06F1648DDBC0032FC36 /* NSArray+common.m in Sources */ = {isa = PBXBuildFile; fileRef = 55B3C06E1648DDBC0032FC36 /* NSArray+common.m */; };
-		55BFFE3516522FDE00237DE3 /* URLParser.m in Sources */ = {isa = PBXBuildFile; fileRef = 55BFFE3416522FDE00237DE3 /* URLParser.m */; };
 		D009D37C17B10E6600C4C5E8 /* View.m in Sources */ = {isa = PBXBuildFile; fileRef = D009D37B17B10E6600C4C5E8 /* View.m */; };
+		D02ABF2617FEA92F00218070 /* Categories.m in Sources */ = {isa = PBXBuildFile; fileRef = D02ABF2517FEA92F00218070 /* Categories.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -37,22 +32,9 @@
 		5519DF21163F3C52005EC23D /* HTTPRequest.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HTTPRequest.h; sourceTree = "<group>"; };
 		5519DF22163F3C52005EC23D /* HTTPRequest.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = HTTPRequest.m; sourceTree = "<group>"; };
 		5522E6501640F958001EA938 /* Categories.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Categories.h; sourceTree = "<group>"; };
-		5522E6511640F959001EA938 /* NSData+common.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSData+common.h"; sourceTree = "<group>"; };
-		5522E6521640F959001EA938 /* NSData+common.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "NSData+common.m"; sourceTree = "<group>"; };
-		5522E6531640F959001EA938 /* NSString+common.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSString+common.h"; sourceTree = "<group>"; };
-		5522E6541640F959001EA938 /* NSString+common.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "NSString+common.m"; sourceTree = "<group>"; };
-		557110AE1655F9B80069F34C /* UIImage+common.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "UIImage+common.h"; sourceTree = "<group>"; };
-		557110AF1655F9B80069F34C /* UIImage+common.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "UIImage+common.m"; sourceTree = "<group>"; };
-		558BFFC8165B4D5E0099081C /* UIVerticalLabel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = UIVerticalLabel.h; sourceTree = "<group>"; };
-		558BFFC9165B4D5E0099081C /* UIVerticalLabel.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = UIVerticalLabel.m; sourceTree = "<group>"; };
-		55B3C06D1648DDBC0032FC36 /* NSArray+common.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSArray+common.h"; sourceTree = "<group>"; };
-		55B3C06E1648DDBC0032FC36 /* NSArray+common.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "NSArray+common.m"; sourceTree = "<group>"; };
-		55BFFE3316522FDE00237DE3 /* URLParser.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = URLParser.h; sourceTree = "<group>"; };
-		55BFFE3416522FDE00237DE3 /* URLParser.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = URLParser.m; sourceTree = "<group>"; };
 		D009D37A17B10E6600C4C5E8 /* View.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = View.h; sourceTree = "<group>"; };
 		D009D37B17B10E6600C4C5E8 /* View.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = View.m; sourceTree = "<group>"; };
-		D009D37D17B10E7600C4C5E8 /* NSDictionary+common.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NSDictionary+common.h"; sourceTree = "<group>"; };
-		D009D37E17B10E7600C4C5E8 /* NSDictionary+common.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "NSDictionary+common.m"; sourceTree = "<group>"; };
+		D02ABF2517FEA92F00218070 /* Categories.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Categories.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -71,22 +53,9 @@
 			isa = PBXGroup;
 			children = (
 				5522E6501640F958001EA938 /* Categories.h */,
-				5522E6511640F959001EA938 /* NSData+common.h */,
-				5522E6521640F959001EA938 /* NSData+common.m */,
-				5522E6531640F959001EA938 /* NSString+common.h */,
-				5522E6541640F959001EA938 /* NSString+common.m */,
-				D009D37D17B10E7600C4C5E8 /* NSDictionary+common.h */,
-				D009D37E17B10E7600C4C5E8 /* NSDictionary+common.m */,
-				55B3C06D1648DDBC0032FC36 /* NSArray+common.h */,
-				55B3C06E1648DDBC0032FC36 /* NSArray+common.m */,
-				557110AE1655F9B80069F34C /* UIImage+common.h */,
-				557110AF1655F9B80069F34C /* UIImage+common.m */,
+				D02ABF2517FEA92F00218070 /* Categories.m */,
 				5519DF21163F3C52005EC23D /* HTTPRequest.h */,
 				5519DF22163F3C52005EC23D /* HTTPRequest.m */,
-				55BFFE3316522FDE00237DE3 /* URLParser.h */,
-				55BFFE3416522FDE00237DE3 /* URLParser.m */,
-				558BFFC8165B4D5E0099081C /* UIVerticalLabel.h */,
-				558BFFC9165B4D5E0099081C /* UIVerticalLabel.m */,
 				5519DF17163F3BF1005EC23D /* common-Prefix.pch */,
 				D009D37A17B10E6600C4C5E8 /* View.h */,
 				D009D37B17B10E6600C4C5E8 /* View.m */,
@@ -163,12 +132,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				5519DF23163F3C52005EC23D /* HTTPRequest.m in Sources */,
-				5522E6551640F959001EA938 /* NSData+common.m in Sources */,
-				5522E6561640F959001EA938 /* NSString+common.m in Sources */,
-				55B3C06F1648DDBC0032FC36 /* NSArray+common.m in Sources */,
-				55BFFE3516522FDE00237DE3 /* URLParser.m in Sources */,
-				557110B01655F9B80069F34C /* UIImage+common.m in Sources */,
-				558BFFCA165B4D5E0099081C /* UIVerticalLabel.m in Sources */,
+				D02ABF2617FEA92F00218070 /* Categories.m in Sources */,
 				D009D37C17B10E6600C4C5E8 /* View.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

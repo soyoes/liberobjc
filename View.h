@@ -9,6 +9,88 @@
 #import <UIKit/UIKit.h>
 #import <QuartzCore/QuartzCore.h>
 
+//#import "Styles.h"
+
+typedef struct {
+    //Class *isa;
+    char * ID;
+    char * name;//classname
+    
+    char * layout;
+    
+    float x,y,w,h;
+    char * border, *borderLeft, *borderRight, *borderTop, *borderBottom;
+    float cornerRadius;
+    char * outline, *outlineColor;
+    float outlineSpace, outlineWidth;
+    char * shadow;
+    
+    float alpha;//1..100
+    char * bgcolor;
+    
+    float padding, paddingLeft, paddingTop, paddingRight, paddingBottom;
+    float margin, marginLeft, marginTop, marginRight, marginBottom;
+    float space;
+    
+    float scaleX, scaleY;//<0.00 & <x
+    float rotate;
+    char * flip; //FIXME
+    
+    char * font;
+    char * fontName;
+    char * fontStyle;
+    float fontSize;
+    char * color;
+    char * textAlign;
+    bool nowrap;
+    bool truncate;
+    bool editable;
+    
+    char *placeHolder;
+    
+    float rowHeight;
+}Styles;
+
+//struct StyleRef;
+
+/*
+@interface StylesE
+@property NSString* name;//classname
+@property NSString * layout;
+@property float x,y,w,h;
+@property NSString * border, borderLeft, borderRight, borderTop, borderBottom;
+@property float cornerRadius;
+@property NSString * outline, *outlineColor;
+@property float outlineSpace, outlineWidth;
+@property NSString * shadow;
+@property float alpha;
+@property NSString * bgcolor;
+@property float padding, paddingLeft, paddingTop, paddingRight, paddingBottom;
+@property float margin, marginLeft, marginTop, marginRight, marginBottom;
+@property float space;
+@property float scaleX, scaleY;
+@property float rotate;
+@property NSString * flip; //FIXME
+@property NSString * fontName;
+@property NSString * fontStyle;
+@property float fontSize;
+@property UIColor * color;
+@property NSString * textAlign;
+@property bool wrapped;
+@property bool truncate;
+@property bool editable;
+@property float rowHeight;
+@end
+ */
+
+
+
+
+typedef struct {
+    char * left;
+    
+} AlignMapping;
+
 typedef enum {
     BOX=0,
     HBOX=1,
@@ -24,91 +106,55 @@ typedef void(^ViewGestureHandler)(UIGestureRecognizer*);
 @class View;
 
 @interface Border : NSObject
-@property (nonatomic) UIColor *color;
-@property (nonatomic) int width;
-@property (nonatomic) int radius;
+@property  UIColor *color;
+@property  float width;
+@property  float radius;
 +(Border*) borderWithStyle:(NSString*)style;
-@end
-
-@interface Borders : UIView
-@property (nonatomic) NSMutableArray *sides;
-@property (nonatomic) int radius;
-@property (nonatomic) BOOL customized;
-@property (nonatomic) BOOL hasBorder;
-@property (nonatomic) View* target;
-//@property (nonatomic) int left,top,right,bottom;
--(id) initWithTarget:(View*)v;
--(void) add:(NSString*)style side:(int)side;
-//-(CGRect) contentRect;
 
 @end
-
-@interface InnerShadow : UIView
-@property (nonatomic) float y;
-@property (nonatomic) float x;
-@property (nonatomic) float radius;
-@property (nonatomic) UIColor *color;
-@property (nonatomic) View* target;
--(id) initWithTarget:(View*)v x:(float)x y:(float)y r:(float)r color:(UIColor*)color;
-@end
-
 
 @interface View : UIScrollView <UITextFieldDelegate,UITextViewDelegate>
 
 
-@property (nonatomic) ViewTypes type;
-@property (nonatomic) NSString  *ID;
-@property (nonatomic,retain) NSMutableDictionary *opts;
-@property (nonatomic,retain) NSMutableDictionary *data;
-@property (nonatomic) NSMutableDictionary *gestures;
-@property (nonatomic) NSMutableArray  *attrs;
-@property (nonatomic) UIView *parent;
+@property  ViewTypes type;
 
-@property (nonatomic) BOOL isRoot;
-@property (nonatomic) BOOL editable;
+@property  int idx;
+@property  NSString  *ID;
+@property  NSMutableDictionary *data;
+@property  NSMutableDictionary *gestures;
+@property  Styles styles;
 
-@property (nonatomic) NSString *txt;
-@property (nonatomic,retain) CATextLayer *textLayer;
-@property (nonatomic,retain) UIView *textField;
+@property  BOOL isRoot;
+//@property  BOOL editable;
 
-@property (nonatomic) NSString *src;
-@property (nonatomic) CALayer *backgroundLayer;
+@property  NSString *txt;
+@property  CATextLayer *textLayer;
+@property  UIView *textField;
 
-@property (nonatomic) CGRect contentRect;
+@property  NSString *src;
+@property  CALayer *backgroundLayer;
 
-//default style options from vbox , hbox ...
-@property (nonatomic) NSMutableDictionary* defaultStyles;
-//original style values that override by css method
-@property (nonatomic) NSMutableDictionary* replacedStyles;
+@property  CGRect contentRect;
+@property Border *borderLeft, *borderRight, *borderTop, *borderBottom;
+@property  BOOL isBorderCustomized;
 
-@property (nonatomic) int idx;
-
-@property (nonatomic) Borders *borders;
-@property (nonatomic) CAShapeLayer *content;
-
-@property (nonatomic) InnerShadow *innerShadow;
-@property (nonatomic) float cornerRadius;
-//paddings works only for image|text
-@property (nonatomic) float paddingLeft, paddingTop, paddingRight, paddingBottom;
-@property (nonatomic) float marginLeft, marginTop, marginRight, marginBottom;
-
-@property (nonatomic) float space; //space between items(subviews)
+@property  CAShapeLayer *content;
 
 -(void)appendTo:(UIView *)_parent;
--(id)initWithType:(ViewTypes)type opts:(NSDictionary*)opts target:(UIView*)target;
+-(id)initWithType:(ViewTypes)type styles:(Styles)styles target:(UIView*)target;
 
 -(void) setBackgroundImage:(NSString *)imageUrl;
 -(void) setBackgroundImage:(NSString *)imageUrl fitMode:(UIViewContentMode)mode inRect:(CGRect)rect;
 
 -(void) setImage:(NSString *)imageUrl;
--(void) setStyle:(NSString *)key value:(id)value;
+//-(void) setStyle:(NSString *)key value:(id)value;
 -(void) setText:(NSString *)text;
+//-(View*) attr:(NSString*)key value:(id)value;
 
--(View*) attr:(NSString*)key value:(id)value;
 
 -(View*) bind:(NSString*)event handler:(ViewGestureHandler)handler options:(NSDictionary*)options;
 -(View*) unbind:(NSString*)event;
--(View*) css:(NSString *)styles;
+//-(View*) css:(NSString *)styles;
 -(View*) root;
 
 -(id) get:(NSString *)keyPath;
@@ -118,17 +164,19 @@ typedef void(^ViewGestureHandler)(UIGestureRecognizer*);
 @end
 
 #pragma mark - functions
-
-View* vbox(id subs, NSDictionary*opts, UIView*target);
-View* hbox(id subs, NSDictionary*opts, UIView*target);
-View* label(NSString*src, NSDictionary*opts, UIView*target);
-View* img(NSString*src, NSDictionary*opts, UIView*target);
+View* box(ViewTypes type, id subs, Styles styles, UIView*target);
+View* vbox(id subs, Styles style, UIView*target);
+View* hbox(id subs, Styles style, UIView*target);
+View* label(NSString*src, Styles style, UIView*target);
+View* img(NSString*src, Styles style, UIView*target);
 
 typedef void(^ViewDrawListRowHandler)(NSDictionary*,View*,int);
-View* list(NSArray*data, ViewDrawListRowHandler handler, NSDictionary*opts, UIView*target);
+View* list(NSArray*data, ViewDrawListRowHandler handler, Styles styles, UIView*target);
 
 void load_style(NSString* style_file);
 NSDictionary* style(NSString* style);
+NSString * str(char * cs);
+char * cstr(NSString * cs);
 
 //View* grids(NSArray*data, NSDictionary*opts, UIView*target);
 

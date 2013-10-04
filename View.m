@@ -38,7 +38,7 @@
 #define logSize(name,size) (NSLog(@"--\nRECT:%@ = (%f,%f) \n--",(name),(size.width),(size.height)))
 #define logPoint(name,p) (NSLog(@"--\nRECT:%@ = (%f,%f) \n--",(name),(p.x),(p.y)))
 
-#define _styles @[@"shadow", @"border",@"borderLeft",@"borderTop",@"borderRight",@"borderBottom", @"bgcolor", @"rotate", @"scale", @"flip", @"alpha", @"font", @"fontSize", @"color", @"textAlign", @"align", @"padding", @"paddingLeft",@"paddingTop", @"paddingRight",@"paddingBottom"]
+#define _styles @[@"shadow", @"border",@"borderLeft",@"borderTop",@"borderRight",@"borderBottom", @"bgcolor", @"rotate", @"scale", @"flip", @"alpha", @"font", @"fontSize", @"color", @"textAlign", @"align", @"padding", @"paddingLeft",@"paddingTop", @"paddingRight",@"paddingBottom",@"outline"]
 #define _events @[@"tap", @"pinch", @"rotation", @"swipe", @"pan", @"longpress"]
 
 #define radians(degrees) (degrees * M_PI/180)
@@ -46,6 +46,15 @@
 #ifndef STYLE_SHEET_FILE
     #define STYLE_SHEET_FILE "styles.json"
 #endif
+
+/*
+struct StyleRef {
+    int x;
+    int y;
+    StyleRef():x(1),y(1) {}
+};
+*/
+
 
 /*
  @opts
@@ -62,6 +71,8 @@
     borderRight
     borderTop
     borderBottom
+    outline: 
+        //format: width space color ...  1 1 #333333
  
     paddingLeft, paddingTop, paddingRight, paddingBottom    
         //works with label only
@@ -108,15 +119,17 @@
 
 static NSDictionary * _stylesheets;
 
+
 #pragma mark - functions
 
-View* box(ViewTypes type, id subs, NSDictionary*opts, UIView*target){
-    View *v = [[View alloc] initWithType:type opts:opts target:nil];
+View* box(ViewTypes type, id subs, Styles styles, UIView*target){
+    View *v = [[View alloc] initWithType:type styles:styles target:nil];
     if(subs!=nil){
         if([subs isKindOfClass:[View class]]){
             [(View*)subs appendTo:v];
         }else if([subs isKindOfClass:[NSArray class]]){
-            for(View* sub in subs){
+            for (int i=0; i<[subs count]; i++) {
+                View* sub = [subs objectAtIndex:i];
                 [sub appendTo:v];
             }
         }
@@ -125,45 +138,43 @@ View* box(ViewTypes type, id subs, NSDictionary*opts, UIView*target){
     return v;
 }
 
-View* vbox(id subs, NSDictionary*opts, UIView*target){
-    return box(VBOX, subs, opts, target);
+View* vbox(id subs, Styles styles, UIView*target){
+    return box(VBOX, subs, styles, target);
 }
-View* hbox(id subs, NSDictionary*opts, UIView*target){
-    return box(HBOX, subs, opts, target);
+View* hbox(id subs, Styles styles, UIView*target){
+    return box(HBOX, subs, styles, target);
 }
-View* label(NSString*text, NSDictionary*opts, UIView*target){
-    /*
-    if(opts==nil)opts=@{@"font":@"default"};
-    NSMutableDictionary *nopts = [[NSMutableDictionary alloc] initWithDictionary:opts copyItems:YES];
-    if(opts[@"font"]==nil){
-        nopts[@"font"]=@"default";
-    }
-     */
+View* label(NSString*text, Styles styles, UIView*target){
     if (text==nil) text=@"";
-    View *v = box(VBOX, nil, opts, target);
-    //NSLog(@"rect %d, %d, %d, %d", v.frame.origin.x,v.frame.origin.y,v.frame.size.width, v.frame.size.height);
+    View *v = box(VBOX, nil, styles, target);
     [v setText:text];
     return v;
 }
-View* img(NSString*src, NSDictionary*opts, UIView*target){
-    View *v = box(VBOX, nil, opts, target);
+View* img(NSString*src, Styles styles, UIView*target){
+    View *v = box(VBOX, nil, styles, target);
     [v setImage:src];
     return v;
 }
 
-View* list(NSArray*data, ViewDrawListRowHandler handler, NSDictionary*opts, UIView*target){
-    View *v = vbox(nil, opts, target);
+View* list(NSArray*data, ViewDrawListRowHandler handler, Styles styles, UIView*target){
+    View *v = vbox(nil, styles, target);
     if(data!=nil){
         int idx = 0;
-        NSNumber* rowHeight = opts&&opts[@"rowHeight"]!=nil?opts[@"rowHeight"]:@44;
+        float rh = MAX(styles.rowHeight, 44);
         for(NSDictionary *d in data){
-            View *row = vbox(nil, @{@"h":rowHeight,@"w":@320}, nil);
+            Styles rowStyle ={.h=rh, .w=320};
+            View *row = vbox(nil, rowStyle, nil);
             handler(d, row, idx);
             [row appendTo:v];
             idx++;
         }
     }
     return v;
+}
+
+NSString * str(char * cs){return cs!=nil?[NSString stringWithFormat:@"%s",cs]:nil;}
+char * cstr(NSString * cs){
+    return (char*)[cs UTF8String];
 }
 
 NSDictionary* style(NSString* style){
@@ -208,299 +219,80 @@ void load_style(NSString* style_file){
 
 @end
 
-@implementation Borders
-
--(id)initWithTarget:(View*)v{
-    self = [super initWithFrame:v.bounds];
-    //self.bounds = v.bounds;
-    Border *dummy = [Border borderWithStyle:@"0"];
-    _sides = [[NSMutableArray alloc] initWithArray:@[dummy, dummy, dummy, dummy]];
-    _radius = 0;
-    _target = v;
-    _hasBorder = NO;
-    _customized = NO;
-    self.opaque = NO;
-    return self;
-}
-/**
- format :width color/image corner-radius
- format(use image) : 1 myline.png 4
- format(use rgbcolor) : 1 213,204,222
- format(use hexcolor) : 1 #CCFF33 2
-*/
--(void) add:(NSString*)style side:(int)side{
-    if(_target.isRoot)
-        return;
-    
-    Border *b= [Border borderWithStyle:style];
-    
-    if(b.width>0){_hasBorder = YES;}
-    
-    float w = _target.contentRect.size.width;
-    float h = _target.contentRect.size.height;
-    float xOffset=0,yOffset=0;
-    
-    if(side==-1){
-        [self.sides setArray:@[b,b,b,b]];
-        yOffset = b.width*2;
-        xOffset = b.width*2;
-    }else{
-        _customized = YES;
-        [_sides setObject:b atIndexedSubscript:side];
-        xOffset = side%2==0 ? b.width:0;
-        yOffset = side%2==1 ? b.width:0;
-    }
-
-    //resize frame
-    float left = ((Border*)_sides[0]).width;
-    float top = ((Border*)_sides[1]).width;
-    float right = ((Border*)_sides[2]).width;
-    float bottom = ((Border*)_sides[3]).width;
-
-    _target.frame = CGRectMake(_target.contentRect.origin.x, _target.contentRect.origin.y,
-                               w+left+right, h+top+bottom);
-    _target.content.frame = CGRectMake(left,top,w,h);
-    self.frame = _target.bounds;
-    
-}
-
-
--(void)drawRect:(CGRect)rect{
-    if(!_hasBorder)
-        return;
-    
-    if(_radius==0)
-        _radius = _target.cornerRadius;
-    
-    //[super drawRect:rect];
-    float left = ((Border*)_sides[0]).width;
-    float top = ((Border*)_sides[1]).width;
-    float right = ((Border*)_sides[2]).width;
-    float bottom = ((Border*)_sides[3]).width;
-    float w = self.bounds.size.width;
-    float h = self.bounds.size.height;
-    
-    if(!_customized){
-        Border *b = ((Border*)_sides[0]);
-        self.layer.borderWidth = b.width;
-        self.layer.borderColor = b.color.CGColor;
-        self.layer.cornerRadius = _radius;
-        //_target.layer.masksToBounds = YES;
-        _target.content.cornerRadius = _radius;
-    }else{
-        if(left+right+top+bottom>0){
-            //self.layer.masksToBounds = NO;
-            float cx = left>0&&right>0 ? left/(left+right)*w: w/2;
-            float cy = top>0&&bottom>0 ? top/(top+bottom)*h: h/2;
-            
-            float m[4][10]  =  {
-                {0,0,   _radius,0,    cx,cy,    _radius,h,      0,h},
-                {w,0,   w,_radius,    cx,cy,    0,_radius,      0,0},
-                {w,h,   w-_radius,h,  cx,cy,    w-_radius,0,    w,0},
-                {0,h,   0,h-_radius,  cx,cy,    w,h-_radius,    w,h}
-            };
-            
-            for (int side=0;side<=3;side++) {
-                Border* border = _sides[side];
-                Border* prev = side==0 ? _sides[3] : _sides[side-1];
-                Border* next = side>=3 ? _sides[0]:_sides[side+1];
-                
-                if(border.width>0){
-                    if(_radius>border.width && (prev.width==0 || next.width==0)){
-                        if(prev.width==0 && next.width==0){
-                            [self drawPoints:m[side] size:5 fillColor:border.color strokeColor:nil strokeWidth:0];
-                        }else if(prev.width>0 && next.width==0){
-                            float points[] = {m[side][0],m[side][1],m[side][2],m[side][3],m[side][4],m[side][5],m[side][8],m[side][9]};
-                            [self drawPoints:points size:4 fillColor:border.color strokeColor:nil strokeWidth:0];
-                        }else if(prev.width==0 && next.width>0){
-                            float points[] = {m[side][0],m[side][1],m[side][4],m[side][5],m[side][6],m[side][7],m[side][8],m[side][9]};
-                            [self drawPoints:points size:4 fillColor:border.color strokeColor:nil strokeWidth:0];
-                        }
-                    }else{
-                        float points[] = {m[side][0],m[side][1],m[side][4],m[side][5],m[side][8],m[side][9]};
-                        [self drawPoints:points size:3 fillColor:border.color strokeColor:nil strokeWidth:0];
-                    }
-                }
-            }
-            
-            
-        }
-        
-        CGMutablePathRef path = CGPathCreateMutable();
-        CGPathMoveToPoint(path, NULL, MAX(left,_radius), top);
-        CGPathAddLineToPoint(path, NULL, w-MAX(right,_radius), top);
-        CGPathAddQuadCurveToPoint(path, NULL, w-right, top, w-right, MAX(top,_radius));
-        CGPathAddLineToPoint(path, NULL, w-right, h-MAX(bottom,_radius));
-        CGPathAddQuadCurveToPoint(path, NULL, w-right, h-bottom, w-MAX(right,_radius), h-bottom);
-        CGPathAddLineToPoint(path, NULL, MAX(left,_radius), h-bottom);
-        CGPathAddQuadCurveToPoint(path, NULL, left, h-bottom, left, h-MAX(bottom,_radius));
-        CGPathAddLineToPoint(path, NULL, left, MAX(top,_radius));
-        CGPathAddQuadCurveToPoint(path, NULL, left, top, MAX(left,_radius), top);
-        CGPathCloseSubpath(path);
-    
-        CAShapeLayer *mask = [CAShapeLayer layer];
-        mask.frame = CGRectMake(-1*left, -1*top, self.frame.size.width, self.frame.size.height);
-        mask.path = path;
-        _target.content.mask = mask;
-        mask.fillColor = [UIColor blackColor].CGColor;
-    
-        [self clearPath:path];
-    }
-
-    self.layer.cornerRadius = _radius;
-    self.layer.masksToBounds = YES;
-
-}
-/*
--(CGRect) contentRect{
-    
-    float left = MAX(((Border*)_sides[0]).width, _radius);
-    float top = MAX(((Border*)_sides[1]).width, _radius);
-    float right = MAX(((Border*)_sides[2]).width, _radius);
-    float bottom = MAX(((Border*)_sides[3]).width, _radius);
-    float w = self.bounds.size.width;
-    float h = self.bounds.size.height;
-
-    return CGRectMake(left, top, w-left-right, h-top-bottom);
-
-};
-*/
-
-@end
-
-
-#pragma mark - InnerShadow
-
-@implementation InnerShadow
-
--(id) initWithTarget:(View*)v x:(float)x y:(float)y r:(float)r color:(UIColor*)color{
-    self = [super initWithFrame:v.bounds];
-    self.target = v;
-    self.x = x;
-    self.y = y;
-    self.radius = r;
-    self.color = color==nil? [UIColor colorWithRed:0 green:0 blue:0 alpha:1]:color;
-    self.clipsToBounds = YES;
-    self.layer.cornerRadius = v.cornerRadius;
-    self.backgroundColor = [UIColor clearColor];
-    
-    return self;
-}
-
-
-- (void)drawRect:(CGRect)rect {
-    CGContextRef context = UIGraphicsGetCurrentContext();
-    CGContextSetAllowsAntialiasing(context, YES);
-    CGContextSaveGState(context);
-    // clip context so shadow only shows on the inside
-    CGPathRef inner = [UIBezierPath bezierPathWithRoundedRect:rect cornerRadius:_target.cornerRadius].CGPath;
-    CGContextAddPath(context, inner);
-    CGContextClip(context);
-    
-    CGContextAddPath(context, inner);
-    CGContextSetShadowWithColor(context, CGSizeMake(_x, _y), _radius, _color.CGColor);
-    CGContextSetStrokeColorWithColor(context, [UIColor colorWithWhite:1 alpha:1].CGColor);
-    CGContextStrokePath(context);
-    CGContextRestoreGState(context);
-}
-
-@end
-
 
 #pragma mark - View
 @implementation View
+@synthesize styles,ID;
 
--(id)initWithType:(ViewTypes)type opts:(NSDictionary*)opts target:(UIView*)target{
-    
-    opts = opts!=nil?opts: @{};
+-(id)initWithType:(ViewTypes)type styles:(Styles)style target:(UIView *)target{
     
     self = [super initWithFrame:CGRectMake(0, 0, 0, 0)];
     
     load_style(nil);
     
+    self.styles = [self mergeStyle:style];
+    
     _type = type;
     
     self.backgroundColor = [UIColor clearColor];
     
-    _opts = [[NSMutableDictionary alloc] initWithDictionary:opts];
-    
     _data = [[NSMutableDictionary alloc] init];
-    _attrs = [[NSMutableArray alloc] initWithArray:[self getAttrs:[self class]]];
-    _space = (opts[@"space"]==nil) ? 0:[opts[@"space"] intValue];
     
-    _ID = (opts[@"id"]==nil) ? nil:[opts[@"id"] stringValue];
+    ID = [NSString stringWithFormat:@"%s", styles.ID];
 
-    NSArray *superAttrs =[self getAttrs:[target class]];
-    [_attrs addObjectsFromArray:superAttrs];
-    
-    _replacedStyles = [[NSMutableDictionary alloc] init];
     if(target!=nil)
         [self appendTo:target];
     else
-        self.frame = [self calculateFrame];
+        self.frame = [self calculateFrame:target];
     self.contentRect = self.frame;
-    logRect(_ID,self.frame);
-    _borders = [[Borders alloc] initWithTarget:self];
+    //logRect(ID,self.frame);
+    
     _content = [CAShapeLayer layer];
     _content.frame = self.bounds;
     _content.masksToBounds = YES;
 
     self.layer.masksToBounds = NO;
+
     return self;
+}
+
+-(Styles)mergeStyle:(Styles)s{
+    
+    //NSDictionary * comm = style(@"*");
+    
+    if(s.scaleX==0)s.scaleX = 1;
+    if(s.scaleY==0)s.scaleY = 1;
+    if(s.fontSize==0)s.fontSize = 14;
+    if(s.color==nil)s.color = "#000000";
+    if(s.fontName==NULL)s.fontName = "Helvetica Neue Light";
+    
+    return s;
+
 }
 
 -(void)appendTo:(UIView *)parent{
     if(parent!=nil){
         _idx = [parent.subviews count];
-        if(_parent==nil){
-            _parent = parent;
-            CGRect frame = [self calculateFrame];
-            //logRect(@"",frame);
-            self.frame = frame;
-            [self attr:_opts];
-
-            if(self.txt!=nil){
-                [self setText:_txt];
-            }
-            if(self.src!=nil){
-                [self setImage:_src];
-            }
-            [_parent addSubview:self];
-            if(![_parent isKindOfClass:[View class]])
-                self.isRoot = YES;
-            [self setNeedsDisplay];
+        CGRect frame = [self calculateFrame:parent];
+        self.frame = frame;
+        
+        if(self.txt!=nil){
+            [self setText:_txt];
         }
+        if(self.src!=nil){
+            [self setImage:_src];
+        }
+        
+        if(![parent isKindOfClass:[View class]])
+            self.isRoot = YES;
+        [self renderStyles];
+        
+        [parent addSubview:self];
     }
 }
 
 
-// Only override drawRect: if you perform custom drawing.
-// An empty implementation adversely affects performance during animation.
-- (void)drawRect:(CGRect)rect{
-   
-   // self.backgroundColor = [UIColor clearColor];
-    
-    logRect(@"drawrect", rect);
-
-    [_content removeFromSuperlayer];
-    [self.layer addSublayer:_content];
-    
-    
-    if(_innerShadow!=nil){
-        [_innerShadow removeFromSuperview];
-        [self addSubview:_innerShadow];
-    }
-    if(_borders.hasBorder){
-        [self addSubview:_borders];
-    }
-
-    //FIXME draw Images && text here
-    
-    NSLog(@"drawRect %@", self.ID);
-    
-}
-
-
+/*
 
 -(NSArray*)getAttrs:(id)target{
     unsigned int outCount, i;
@@ -519,26 +311,9 @@ void load_style(NSString* style_file){
     free(properties);
     return org_attrs;
 }
-
+*/
 #pragma mark - property methods
-/*
-- (void) setType:(ViewTypes)_type{
-    if(self.type){
-        //TODO
-    }
-    switch (_type) {
-        case (ViewTypes)BOX:
-            break;
-        case (ViewTypes)HBOX:
-            break;
-        case (ViewTypes)VBOX:
-            break;
-        default:
-            break;
-    }
-    
-}
- */
+
 
 -(void) setBackgroundImage:(NSString *)imageUrl{
     //view.layer.contents = yourImage.CGImage;
@@ -551,7 +326,7 @@ void load_style(NSString* style_file){
 -(void) setImage:(NSString *)imageUrl{
     self.src = imageUrl;
     //CGRect rect = [self contentFrame];
-    if(_parent!=nil){
+    //if(_parent!=nil){
         /*
          TODO
          - (CGSize)sizeThatFits:(CGSize)size //calculate a size to make the superview to fit its all subviews
@@ -565,7 +340,7 @@ void load_style(NSString* style_file){
         _backgroundLayer.contentsGravity = kCAGravityCenter;
         _backgroundLayer.contents = (__bridge id)(img.CGImage);
         [self.layer addSublayer:_backgroundLayer];
-    }
+    //}
 }
 
 -(void) setText:(NSString *)_text{
@@ -589,50 +364,56 @@ void load_style(NSString* style_file){
     [_textLayer setString:_text];
     [_textLayer setBackgroundColor:[UIColor clearColor].CGColor];
 
-    [self setFont:_opts[@"font"]];
-    if(_opts[@"fontSize"]!=nil)
-        [self setFontSize: [_opts[@"fontSize"] floatValue]];
+    [self setFont:styles.font];
+    
+    if(styles.fontSize>0)
+        [self setFontSize: styles.fontSize];
+    
+    if(styles.color)
+        [self setColor:str(styles.color)];
 
-    [self setColor:(_opts[@"color"]!=nil)?_opts[@"color"]:nil];
-
-    [self setTextAlign:_opts[@"textAlign"]];
+    [self setTextAlign:str(styles.textAlign)];
 
     [_content addSublayer:_textLayer];
 
 }
 
 -(void) setTextAlign:(NSString*)align{
+    if(align==nil)
+        align = @"left";
+    
     const NSDictionary * def = @{@"center":kCAAlignmentCenter,@"left":kCAAlignmentLeft,
                                  @"right":kCAAlignmentRight,@"justified":kCAAlignmentJustified};
     if(align!=nil)
-        _opts[@"textAlign"] = align;
+        //_opts[@"textAlign"] = align;
+        styles.textAlign = cstr(align);
+    
     NSString *a = (align!=nil && def[align]!=nil) ? def[align]:kCAAlignmentNatural;
     if(_textLayer!=nil){
         [_textLayer setAlignmentMode:a];
     }
-    _textLayer.wrapped = (_opts[@"wrapped"] == nil || ![[_opts[@"wrapped"] lowercaseString] isEqualToString:@"false"]);
-    _textLayer.truncationMode =(_opts[@"truncate"] == nil || ![[_opts[@"truncate"] lowercaseString] isEqualToString:@"true"]) ?
-                    kCATruncationNone: kCATruncationEnd;
-    
+    _textLayer.wrapped = !styles.nowrap;
+    _textLayer.truncationMode = styles.truncate ? kCATruncationEnd:kCATruncationNone;
 }
 
--(void) setFont:(NSString*)font{
+-(void) setFont:(char*)font{
+    NSString *f = [NSString stringWithFormat:@"%s",font];
     if(_textLayer==nil)
         _textLayer= [[CATextLayer alloc] init];
     NSDictionary *defaultStyle = style(@"*");
-    if(defaultStyle!=nil && font==nil){
-        font = defaultStyle[@"font"];
+    if(defaultStyle!=nil && f==nil){
+        f = defaultStyle[@"font"];
     }
-    if(font!=nil && ![font isEqualToString:@"default"]){
-        float fontSize = defaultStyle!=nil && defaultStyle[@"fontSize"]!=nil ? [defaultStyle[@"fontSize"] floatValue]:14;
-        if([font contains:@","]){//@"monaco,12"
-            NSArray *fs = [font componentsSeparatedByString:@","];
-            font = (NSString*)fs[0];
+    if(f!=nil && ![f isEqualToString:@"default"]){//FIXME
+        float fontSize = styles.fontSize>0?styles.fontSize:14;
+        if([f contains:@","]){//@"monaco,12"
+            NSArray *fs = [f componentsSeparatedByString:@","];
+            f = (NSString*)fs[0];
             NSString *fsize = [(NSString*)fs[1] stringByReplacingOccurrencesOfString:@" " withString:@""];
             fontSize = [fsize floatValue];
         }
-        _opts[@"fontName"] = font;
-        [_textLayer setFont:(__bridge CFTypeRef)(font)];
+        styles.fontName = cstr(f);
+        [_textLayer setFont:(__bridge CFTypeRef)(f)];
         [_textLayer setFontSize:fontSize];
     }else{
         [self setFontSize:-1];//adjust size auto;
@@ -661,95 +442,268 @@ void load_style(NSString* style_file){
         [_textLayer setFontSize:s];
     else{
         CGRect rect = [self contentFrame];
-        NSString *fontName = _opts[@"fontName"]!=nil? _opts[@"fontName"]:@"Helvetica";
+        NSString *fontName = styles.fontName? str(styles.fontName):@"Helvetica";
         int fontSize = ![_txt isEqual:[NSNull null]] ? [_txt sizeToFit:rect.size font:fontName] : 14;
-        NSLog(@"font-size:%d",fontSize);
+        //NSLog(@"font-size:%d",fontSize);
         [_textLayer setFontSize:fontSize];
     }
 }
 
-
--(void) setStyle:(NSString *)key value:(id)value{
-    
-    int ix = [_styles indexOfObject:key];
-    switch (ix) {
-        case 0://shadow
-            //format: x y radius color opacity
-            [self setShadow:(NSString*)value];
-            break;
-        case 1://border
-            [self setBorder:-1 style:value];
-            break;
-        case 2://borderLeft
-            [self setBorder:0 style:value];
-            break;
-        case 3://borderTop
-            [self setBorder:1 style:value];
-            break;
-        case 4://borderRight
-            [self setBorder:2 style:value];
-            break;
-        case 5://borderBottom
-            [self setBorder:3 style:value];
-            break;
-        case 6://bgcolor
-            [self setBgcolor:value];
-            break;
-        case 7://rotate
-            //format :angel
-            [self setRotate:value];
-            break;
-        case 8://scale:
-            //format :x,y
-            [self setScale:value];
-            break;
-        case 9://flip
-            //format :@H/@V
-            if ([value isEqualToString:@"H"]) {
-                self.transform = CGAffineTransformMake(self.transform.a * -1, 0, 0, 1, self.transform.tx, 0);
-            }else if([value isEqualToString:@"V"]){
-                self.transform = CGAffineTransformMake(1, 0, 0, self.transform.d * -1, 0, self.transform.ty);
-            }
-            break;
-        case 10://alpha
-            self.alpha = [(NSNumber*)value floatValue];
-            break;
-        /*
-         text styles have to be set in setText.
-        case 11://font
-            [self setFont:value];
-            break;
-        case 12://fontSize
-            [self setFont:value];
-            break;
-        case 13://color
-            [self setColor:value];
-            break;
-        case 14://textAlign
-            [self setTextAlign:value];
-            break;
-        */
-        case 15://align
-            //TODO 8ways , only set on parent.
-            break;
-            
-        case 16://padding
-            
-            break;
-        case 17://paddingLeft
-            break;
-        case 18://paddingTop
-            break;
-        case 19://paddingRight
-            break;
-        case 20://paddingBottom
-            break;
-        default:
-            //[self setValue:value forKey:key];
-            break;
+-(void) setOutline:(NSString*)outline{
+    outline = [outline regexpReplace:@"  +" replace:@" "];
+    NSArray *parts = [outline componentsSeparatedByString:@" "];
+    if([parts count]==3){
+        styles.outlineWidth = [parts[0] floatValue];
+        styles.outlineSpace = [parts[1] floatValue];
+        styles.outlineColor = cstr(parts[2]);
     }
 }
 
+
+/**
+ format :width color/image corner-radius
+ format(use image) : 1 myline.png 4
+ format(use rgbcolor) : 1 213,204,222
+ format(use hexcolor) : 1 #CCFF33 2
+ */
+-(void) setBorder:(NSString*)style side:(int)side{
+    if(_isRoot)
+        return;
+    Border *b= [Border borderWithStyle:style];
+    if(b.width>0){
+        BOOL custom = YES;
+        
+        switch (side) {
+            case 0:_borderLeft=b;break;
+            case 1:_borderTop=b;break;
+            case 2:_borderRight=b;break;
+            case 3:_borderBottom=b;break;
+            default:
+                custom = NO;
+                _borderLeft = b;
+                _borderTop = b;
+                _borderRight = b;
+                _borderBottom = b;
+                break;
+        }
+        _isBorderCustomized = custom;
+        
+        if(b.radius>styles.cornerRadius)
+            styles.cornerRadius=b.radius;
+        [self resizeBorder];
+    }
+    
+}
+
+-(void)resizeBorder{
+    float w = _contentRect.size.width;
+    float h = _contentRect.size.height;
+    float o = styles.outlineWidth+styles.outlineSpace;
+    
+    //resize frame
+    float left = _borderLeft!=nil? _borderLeft.width+o : o;
+    float top = _borderTop!=nil? _borderTop.width+o : o;
+    float right = _borderRight!=nil? _borderRight.width+o : o;
+    float bottom = _borderBottom!=nil? _borderBottom.width+o : o;
+    
+    self.frame = CGRectMake(_contentRect.origin.x, _contentRect.origin.y,w+left+right, h+top+bottom);
+    _content.frame = CGRectMake(left,top,w,h);
+}
+
+
+-(void) renderStyles{
+    if(styles.border) [self setBorder:str(styles.border) side:-1];
+    if(styles.borderLeft) [self setBorder:str(styles.borderLeft) side:0];
+    if(styles.borderTop) [self setBorder:str(styles.borderTop) side:1];
+    if(styles.borderRight) [self setBorder:str(styles.borderRight) side:2];
+    if(styles.borderBottom) [self setBorder:str(styles.borderBottom) side:3];
+    
+    //if(styles.shadow)[self setShadow:str(styles.shadow)];
+    
+    if(styles.bgcolor)[self setBgcolor:str(styles.bgcolor)];
+    if(styles.rotate)[self setRotate:[NSNumber numberWithFloat:styles.rotate ]];
+    if(styles.scaleX>0 || styles.scaleY>0) [self setScale:[NSString stringWithFormat:@"%f,%f",styles.scaleX,styles.scaleY]];
+
+    if(styles.flip){
+        if (styles.flip[0] == 'H') {
+            self.transform = CGAffineTransformMake(self.transform.a * -1, 0, 0, 1, self.transform.tx, 0);
+        }else if(styles.flip[0] == 'V'){
+            self.transform = CGAffineTransformMake(1, 0, 0, self.transform.d * -1, 0, self.transform.ty);
+        }
+    }
+    
+    
+    
+    //self.alpha = styles.alpha;
+    
+    //TODO align 8 ways
+    //TODO padding, paddingLeft .....
+    
+    
+    //[_content removeFromSuperlayer];
+    [self.layer addSublayer:_content];
+
+    if(styles.shadow){
+        [self drawShadow];
+    }
+    
+    if(_borderLeft!=nil || _isBorderCustomized){
+        [self drawBorders];
+    }
+    
+    if(styles.outline){
+        [self setOutline:str(styles.outline)];
+        [self drawOutline];
+    }
+}
+
+-(void) drawOutline{
+    if(styles.outlineWidth>0){
+        NSString *cl = [NSString stringWithUTF8String:styles.outlineColor];
+        UIColor *oColor;
+        if([cl contains:@","]||[cl contains:@"#"]){//color
+            oColor = [cl colorValue];
+        }else{//image
+            oColor= [UIColor colorWithPatternImage:[UIImage imageNamed:cl]];
+        }
+        
+        float w = styles.outlineWidth + styles.outlineSpace;
+        
+        CALayer *olayer = [CALayer layer];
+        olayer.frame = CGRectMake(-1*w, -1*w,
+                                  self.frame.size.width+2*w, self.frame.size.height+2*w);
+        
+        olayer.borderWidth = styles.outlineWidth;
+        olayer.borderColor = oColor.CGColor;
+        olayer.cornerRadius = styles.cornerRadius>0? styles.cornerRadius+styles.outlineSpace : 0;
+        
+        [self.layer addSublayer:olayer];
+        olayer = nil;oColor = nil;
+    }
+}
+
+-(void) drawBorders{
+
+    float left = _borderLeft!=nil? _borderLeft.width : 0;
+    float top = _borderTop!=nil? _borderTop.width : 0;
+    float right = _borderRight!=nil? _borderRight.width : 0;
+    float bottom = _borderBottom!=nil? _borderBottom.width : 0;
+    
+    float r = styles.cornerRadius;
+    float w = self.frame.size.width;
+    float h = self.frame.size.height;
+    float o = styles.outlineSpace + styles.outlineWidth;
+    
+    //UIView *borderView = [UIView alloc];
+    CALayer *border = [CALayer layer];
+    
+    border.cornerRadius = r;
+    border.masksToBounds = YES;
+    border.frame = CGRectMake(o, o, self.bounds.size.width-2*o, self.bounds.size.height-2*o);
+    
+    if(!_isBorderCustomized){
+        Border * b = _borderLeft;
+        border.borderColor = b.color.CGColor;
+        border.borderWidth = b.width;
+        //[self addSubview:_border];
+        [self.layer addSublayer:border];
+        border = nil;
+        return;
+    }
+    
+    //use round & radius
+    
+    float irs[4] ={
+        r > MAX(left, top)     ? r - MAX(left, top):0,
+        r > MAX(top,right)     ? r - MAX(top,right):0 ,
+        r > MAX(right,bottom)  ? r - MAX(right,bottom):0,
+        r > MAX(right,bottom)  ? r - MAX(bottom,left):0
+    };
+    
+    
+    float angs[4] = {
+        top+irs[0]    > 0? atan((left+irs[0])/(top+irs[0])) : 0,
+        right+irs[1]  > 0? atan((top+irs[1])/(right+irs[1])) : 0,
+        bottom+irs[2] > 0? atan((right+irs[2])/(bottom+irs[2])) : 0,
+        left+irs[3]   > 0? atan((bottom+irs[3])/(left+irs[3])) : 0
+    };
+    
+    //joint points, 7 9 3 1
+    float ps[8] = {
+        left>0  ? (top>0?   left+irs[0]*(1-sin(angs[0]))    : MAX(left, r))    :0,
+        top>0   ? (left>0?  top+irs[0]*(1-cos(angs[0]))     : MAX(top, r))     :0,
+        
+        right>0 ? (top>0?   w-right-irs[1]*(1-cos(angs[1])) : w-MAX(right, r)) :w,
+        top>0   ? (right>0? top+irs[1]*(1-sin(angs[1]))     : MAX(top, r))     :0,
+        
+        right>0 ? (bottom>0?w-right-irs[2]*(1-sin(angs[2])) : w-MAX(right, r)) :w,
+        bottom>0? (right>0? h-bottom-irs[2]*(1-cos(angs[2])): h-MAX(bottom, r)):h,
+        
+        left>0  ? (bottom>0?left+irs[3]*(1-cos(angs[3]))    : MAX(left, r))    :0,
+        bottom>0? (left>0? h-bottom-irs[3]*(1-sin(angs[3])) : h-MAX(bottom, r)):h
+    };
+    
+    float m[4][16]  =  {
+        {0,0,   ps[0],ps[1],    left,MAX(r,top),
+            left,ps[1]+irs[0]*sin(M_PI/2-angs[0])/2,    left,ps[7]-irs[3]*sin(angs[3])/2,             //ctrl points
+            left,h-MAX(r,bottom),      ps[6],ps[7],     0,h},
+        {w,0,   ps[2],ps[3],    w-MAX(r,right),top,
+            ps[2]-irs[1]*sin(M_PI/2-angs[1])/2,top,     ps[0]+irs[0]*sin(angs[0])/2,top,               //ctrl points
+            MAX(r,left),top,           ps[0],ps[1],     0,0},
+        {w,h,   ps[4],ps[5],    w-right,h-MAX(r,bottom),
+            w-right,ps[5]-irs[2]*sin(M_PI/2-angs[2])/2,    w-right,ps[3]+irs[1]*sin(angs[1])/2,       //ctrl points
+            w-right,MAX(r,top),         ps[2],ps[3],     w,0},
+        {0,h,   ps[6],ps[7],    MAX(r,left),h-bottom,
+            ps[6]+irs[3]*sin(M_PI/2-angs[3])/2,h-bottom,    ps[4]-irs[3]*sin(angs[3])/2,h-bottom,    //ctrl points
+            w-MAX(r,right),h-bottom,   ps[4],ps[5],     w,h}
+        
+    };
+    
+    for (int side=0;side<=3;side++) {
+        Border *this= //(Border*)_borders[side];
+            side==0?_borderLeft:(side==1?_borderTop:(side==2?_borderRight:_borderBottom));
+        if(this.width>0){
+            CGMutablePathRef path = CGPathCreateMutable();
+            CGPathMoveToPoint(path, NULL, m[side][0], m[side][1]);
+            CGPathAddLineToPoint(path, NULL, m[side][2], m[side][3]);
+            if(m[side][2]!=m[side][4] && m[side][3]!=m[side][5]){
+                CGPathAddQuadCurveToPoint(path, NULL, m[side][6], m[side][7], m[side][4], m[side][5]);
+            }else{
+                CGPathAddLineToPoint(path, NULL, m[side][4], m[side][5]);
+            }
+            
+            CGPathAddLineToPoint(path, NULL, m[side][10], m[side][11]);
+            
+            if(m[side][10]!=m[side][12] && m[side][11]!=m[side][13]){
+                CGPathAddQuadCurveToPoint(path, NULL, m[side][8], m[side][9], m[side][12], m[side][13]);
+            }else{
+                CGPathAddLineToPoint(path, NULL, m[side][12], m[side][13]);
+            }
+            
+            CGPathAddLineToPoint(path, NULL, m[side][14], m[side][15]);
+            CGPathAddLineToPoint(path, NULL, m[side][0], m[side][1]);
+            CGPathCloseSubpath(path);
+            
+            CALayer *l = [CALayer layer];
+            l.frame =CGRectMake(0, 0, w,h);
+            l.backgroundColor = this.color.CGColor;
+            
+            CAShapeLayer *mask = [CAShapeLayer layer];
+            mask.frame = CGRectMake(0, 0, w,h);
+            mask.path = path;
+            l.mask = mask;
+            mask.fillColor = [UIColor blackColor].CGColor;
+            //[_border.layer addSublayer:l];
+            [border addSublayer:l];
+            l = nil;mask=nil;
+        }
+    }
+    //[self addSubview:_border];
+    [self.layer addSublayer:border];
+    border = nil;
+}
+
+/*
 //Private method
 -(View*) attr:(NSDictionary*)opts{
     NSMutableArray * stylesToSet = [NSMutableArray array];
@@ -798,6 +752,7 @@ void load_style(NSString* style_file){
     }
     return self;
 }
+*/
 
 /**
  
@@ -843,10 +798,11 @@ void load_style(NSString* style_file){
     return self;
 }
 
--(View*) css:(NSString *)styles{
-    if(styles!=nil){
+/*
+-(View*) css:(NSString *)stylename{
+    if(stylename!=nil){
         [self cssClear];
-        NSArray *slist = [[styles regexpReplace:@"  +" replace:@""] componentsSeparatedByString:@" "];
+        NSArray *slist = [[stylename regexpReplace:@"  +" replace:@""] componentsSeparatedByString:@" "];
         for (NSString *stylename in slist) {
             NSDictionary *css =style(stylename);
             if(css!=nil){
@@ -859,19 +815,11 @@ void load_style(NSString* style_file){
         [self cssClear];
     }
     return self;
-}
+}*/
+
 
 #pragma mark - private methods
 
--(void)setBorder:(int)side style:(NSString*)style{
-    [_borders add:style side:side];
-}
-
--(void)setCornerRadius:(float)radius{
-    _cornerRadius = radius;
-    _borders.radius = radius;
-    //_content.cornerRadius = radius;
-}
 
 /**
  //format(use rgbcolor) : 213,204,222
@@ -887,7 +835,7 @@ void load_style(NSString* style_file){
         if(size>=2){
             CAGradientLayer *gradient = [CAGradientLayer layer];
             gradient.frame = self.bounds;
-            gradient.cornerRadius = _cornerRadius;
+            gradient.cornerRadius = styles.cornerRadius;
             
             NSMutableArray *colors=[NSMutableArray array];
             NSMutableArray *locations=[NSMutableArray array];
@@ -939,15 +887,17 @@ void load_style(NSString* style_file){
 }
 
 /**
- format : x y radius colorStr opacity
+ format : x y radius color
  */
 
--(void)setShadow:(NSString*)shadow{
+-(void)drawShadow{
+
     //TODO inset
-    shadow = [shadow regexpReplace:@"  +" replace:@" "];
+    NSString *shadow = [str(styles.shadow) regexpReplace:@"  +" replace:@" "];
     //_opts[@"shadow"] = shadow;
     NSArray *parts = [shadow componentsSeparatedByString:@" "];
     int psize =[parts count];
+
     if(psize>=4){
         BOOL isInner = [parts[0] isEqualToString:@"inset"];
         
@@ -955,31 +905,52 @@ void load_style(NSString* style_file){
         float x = [parts[0+offset] floatValue];
         float y = [parts[1+offset] floatValue];
         float r = [parts[2+offset] floatValue];
+        UIColor * cl = (parts[3+offset]!=nil)? [parts[3+offset] colorValue]:[UIColor darkGrayColor];
 
-        UIColor *color = psize>=4+offset? [parts[3+offset] colorValue]:[UIColor colorWithWhite:0 alpha:0.3];
-    
+        self.clipsToBounds = NO;
+        
         if(isInner){
-            _innerShadow = [[InnerShadow alloc] initWithTarget:self x:x y:y r:r color:color];
+            //_innerShadow = [[InnerShadow alloc] initWithTarget:self x:x y:y r:r];
+            CALayer * s = [CALayer layer];
+            float o = styles.outlineWidth+styles.outlineSpace;
+            float left = _borderLeft!=nil? _borderLeft.width+o : o;
+            float top = _borderTop!=nil? _borderTop.width+o : o;
+            float right = _borderRight!=nil? _borderRight.width+o : o;
+            float bottom = _borderBottom!=nil? _borderBottom.width+o : o;
+
+            s.frame = CGRectMake(left-x, top-y, self.bounds.size.width-left-right+2*x, self.bounds.size.height-top-bottom+2*y);
+            s.cornerRadius = styles.cornerRadius;
+            
+            s.borderWidth = MAX(x, y);
+            s.borderColor = [UIColor colorWithWhite:1 alpha:1].CGColor;
+            s.shadowOffset = CGSizeMake(x/2, y/2);
+            s.shadowRadius = r;
+            s.shadowOpacity = 0.7;
+            s.shadowColor = cl.CGColor;
+            s.masksToBounds = YES;
+            [self.layer addSublayer:s];
+            s = nil;
         }else{
+            
             self.layer.shadowOffset = CGSizeMake(x, y);
             self.layer.shadowRadius = r;
-            self.layer.shadowColor = color.CGColor;
-            self.layer.shadowOpacity = [parts count]>4? [parts[5] floatValue]:0.7;
+            self.layer.shadowColor = cl.CGColor;
+            //!!! layer.shadowOpacity is very slow sometime and cost much more memory
+            //self.layer.shadowOpacity = [parts count]>4? [parts[5] floatValue]:0.7;
+            self.layer.shadowOpacity = 0.7;
         }
-        
-        self.clipsToBounds = NO;
-
     }else{
         self.layer.shadowOffset = CGSizeZero;
         self.layer.shadowRadius = 0;
         self.layer.shadowColor = [UIColor clearColor].CGColor;
         self.layer.shadowOpacity = 0;
     }
-
+    parts = nil;
     
 }
 
 -(void) cssClear{
+    /*
     if(_replacedStyles!=nil){
         for (NSString *k in _replacedStyles) {
             [self setStyle:k value:_replacedStyles[k]];
@@ -990,40 +961,41 @@ void load_style(NSString* style_file){
         for (NSString *k in _defaultStyles) {
             [self setStyle:k value:_defaultStyles[k]];
         }
-    }
+    }*/
+    //FIXME
     
 }
 
 
 -(CGRect)contentFrame{
-    return CGRectMake(_paddingLeft+_cornerRadius, _paddingTop+_cornerRadius,
-                      self.frame.size.width-_paddingLeft-_paddingRight-_cornerRadius*2,
-                      self.frame.size.height-_paddingTop-_paddingBottom-_cornerRadius*2);
+    return CGRectMake(styles.paddingLeft+styles.cornerRadius, styles.paddingTop+styles.cornerRadius,
+                      self.frame.size.width-styles.paddingLeft-styles.paddingRight-styles.cornerRadius*2,
+                      self.frame.size.height-styles.paddingTop-styles.paddingBottom-styles.cornerRadius*2);
 }
 
 
-- (CGRect)calculateFrame{
-    float x = _opts[@"x"]?[_opts[@"x"] floatValue]+_marginLeft:_marginLeft;
-    float y = _opts[@"y"]?[_opts[@"y"] floatValue]+_marginTop:_marginTop;
-    float w= _opts[@"w"]?[_opts[@"w"] floatValue]:0;
-    float h= _opts[@"h"]?[_opts[@"h"] floatValue]:0;
+- (CGRect)calculateFrame:(UIView*)parent{
+    float x = styles.x + styles.marginLeft;
+    float y = styles.y + styles.marginTop;
+    float w= styles.w;
+    float h= styles.h;
     
-    if(_parent!=nil){
-        float pspace = ([_parent isKindOfClass:[View class]])? ((View*)_parent).space:0;
+    if(parent!=nil){
+        float pspace = ([parent isKindOfClass:[View class]])? ((View*)parent).styles.space:0;
         if(_type==VBOX){
-            w = _parent.bounds.size.width-_marginLeft-_marginRight;
-            float top = _marginTop;
-            for(UIView* v in _parent.subviews)
+            w = parent.bounds.size.width-styles.marginLeft-styles.marginRight;
+            float top = styles.marginTop;
+            for(UIView* v in parent.subviews)
                 top += v.bounds.size.height + pspace;
             y = top;
-            if(h==0) h=_parent.bounds.size.height-_marginTop-_marginBottom;
+            if(h==0) h=parent.bounds.size.height-styles.marginTop-styles.marginBottom;
         }else if(_type==HBOX){
-            h = _parent.bounds.size.height-_marginTop-_marginBottom;
-            float left = _marginLeft;
-            for(UIView* v in _parent.subviews)
+            h = parent.bounds.size.height-styles.marginTop-styles.marginBottom;
+            float left = styles.marginLeft;
+            for(UIView* v in parent.subviews)
                 left += v.bounds.size.width + pspace;
             x = left;
-            if(w==0) h=_parent.bounds.size.width-_marginLeft-_marginRight;
+            if(w==0) h=parent.bounds.size.width-styles.marginLeft-styles.marginRight;
         }
     }else{
         CGRect screen = [[UIScreen mainScreen] applicationFrame];
@@ -1046,14 +1018,15 @@ void load_style(NSString* style_file){
         ViewGestureHandler handler = _gestures[className];
         handler(ges);
     }
-    NSLog(@"Gesture :  %@",className);
+    //NSLog(@"Gesture :  %@",className);
 }
 
 -(void) switchEditingMode{
     
     if(_textField!=nil){
         if(_textField.hidden){
-            [self insertSubview:_textField belowSubview:_borders];
+            //[self insertSubview:_textField belowSubview:_borders];
+            [self addSubview:_textField];//FIXME
             if(_textLayer.wrapped){
                 ((UITextView*)_textField).text = _txt;
             }else{
@@ -1087,33 +1060,39 @@ void load_style(NSString* style_file){
 }
 
 -(void) setEditable:(BOOL)editable{
-    _editable = editable;
+    styles.editable = editable;
     if(_textField==nil){
-        CGRect rect = CGRectMake(_cornerRadius, _cornerRadius,
-                                 _contentRect.size.width-2*_cornerRadius,
-                                 _contentRect.size.height-2*_cornerRadius);
+        CGRect rect = CGRectMake(styles.cornerRadius, styles.cornerRadius,
+                                 _contentRect.size.width-2*styles.cornerRadius,
+                                 _contentRect.size.height-2*styles.cornerRadius);
         
-        NSDictionary * styles = style(@"*");
-        NSString *fontName = _opts[@"fontName"]!=nil? _opts[@"fontName"]:@"Helvetica";
-        float fontSize = _opts[@"fontSize"]?[_opts[@"fontSize"] floatValue]:
-            (styles!=nil && styles[@"fontSize"]!=nil? [styles[@"fontSize"] floatValue]:14);
+        NSDictionary * orgs = style(@"*");
+
+        NSString *fontName = //_opts[@"fontName"]!=nil? _opts[@"fontName"]:@"Helvetica";
+            styles.fontName!=NULL ? str(styles.fontName):@"Helvetica";
+        
+        float fontSize =// _opts[@"fontSize"]?[_opts[@"fontSize"] floatValue]:
+            styles.fontSize>0 ? styles.fontSize:
+            (orgs!=nil && orgs[@"fontSize"]!=nil? [orgs[@"fontSize"] floatValue]:14);
+        
         const NSArray * aligns = (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPhone) ?
             @[@"left",@"center",@"right", @"justified", @"natrual"]:@[@"left",@"right",@"center", @"justified", @"natrual"];
-        NSString *align = _opts[@"textAlign"]!=nil?_opts[@"textAlign"]:@"left";
+        //NSString *align = _opts[@"textAlign"]!=nil?_opts[@"textAlign"]:@"left";
+        NSString *align = styles.textAlign?str(styles.textAlign):@"left";
         
-        if(_textLayer.wrapped ||![@"false" isEqualToString:_opts[@"wrapped"]]){
+        if(_textLayer.wrapped ||!styles.nowrap){
             UITextView* t = [[UITextView alloc] initWithFrame:rect];
             t.delegate = self;
-            t.textAlignment = [aligns indexOfObject:align];
+            t.textAlignment = (NSTextAlignment)[aligns indexOfObject:align];
             t.font = [UIFont fontWithName:fontName size:fontSize];
             t.editable = YES;
             _textField = t;
         }else{
             UITextField* t = [[UITextField alloc] initWithFrame:rect];
             t.delegate = self;
-            if(_opts[@"placeHolder"]!=nil)
-                t.placeholder = _opts[@"placeHolder"];
-            t.textAlignment = [aligns indexOfObject:align];
+            if(styles.placeHolder!=nil)
+                t.placeholder = str(styles.placeHolder);
+            t.textAlignment = (NSTextAlignment)[aligns indexOfObject:align];
             t.font = [UIFont fontWithName:fontName size:fontSize];
             _textField = t;
         }
@@ -1130,7 +1109,7 @@ void load_style(NSString* style_file){
 -(View*) root{
     if(self.isRoot)
         return self;
-    UIView *v = _parent;
+    UIView *v = self.superview;
     while (v!=nil) {
         if([v isKindOfClass:[View class]]){
             return [((View*)v) root];
@@ -1158,7 +1137,7 @@ void load_style(NSString* style_file){
 #pragma mark -- delegate of textField
 // may be called if forced even if shouldEndEditing returns NO (e.g. view removed from window) or endEditing:YES called
 - (void)textFieldDidEndEditing:(UITextField *)textField{
-    NSLog(@"textFieldDidEndEditing");
+    //NSLog(@"textFieldDidEndEditing");
     _textField.hidden = YES;
     [self setText:((UITextField*)_textField).text];
     View *root = [self root];
@@ -1169,7 +1148,7 @@ void load_style(NSString* style_file){
 }
 
 - (BOOL)textFieldShouldReturn:(UITextField *)textField{
-    NSLog(@"textFieldShouldReturn");
+    //NSLog(@"textFieldShouldReturn");
     if(_textLayer.wrapped){
         ((UITextField*)_textField).text = [NSString stringWithFormat:@"%@\r\n",((UITextField*)_textField).text ];
         return NO;
