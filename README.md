@@ -81,7 +81,7 @@ a library for objc
 
 The result of the last example
 
-[[/images/example1.jpg]]
+[[http://soyoes.com/test/liberobjc-example1.png]]
 
 
 In your styles.json
