@@ -13,10 +13,13 @@ Rock your OBJC like script language
     * cornerRadius > borderLeft...
 * Simplify some works, so you can define styles like this way
     * .border = "1 #33333399"       #width=1, color=#333333, alpha=99/255
-    * .bgcolor = "#333333 #888888"  #gradient
+    * .bgcolor = "#333333:0 #888888:1"  #gradient %0=#333, %100=#888
     * .shadow = "5 8 10 #666666"    #shadow offset=5,8 radius=10 color=#666666
     * .shadow = "inset 5 5 5"       #inset shadow with offset & radius, color=darkgray
-    
+    * .font = "Arial,18"            #font name=Arail, size=18
+    * .outline = "1 #555555"
+    * .scale = 2,1                  #transform to 200%, 100%
+    * .flip =
 
 # Examples
 
