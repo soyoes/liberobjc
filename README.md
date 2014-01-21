@@ -94,7 +94,7 @@ Rock your OBJC like script language
 
 The result of the last example
 
-[[ http://soyoes.com/test/liberobjc-example1.png ]]
+[[ https://github.com/soyoes/liberobjc/blob/master/images/example1.png ]]
 
 
 In your styles.json
