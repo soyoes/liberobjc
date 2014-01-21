@@ -94,7 +94,6 @@ Rock your OBJC like script language
 
 The result of the last example
 
-[[ https://github.com/soyoes/liberobjc/blob/master/images/example1.png ]]
 ![Image](http://soyoes.com/test/liberobjc-example1.png)
 
 In your styles.json
